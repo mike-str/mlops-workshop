@@ -1,0 +1,83 @@
+version: 0.2
+
+env:
+  variables:
+    $(cat vars-dev.txt)  # Load environment variables from a file
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo Installing dependencies...
+      - pip install --no-cache-dir -r requirements.txt
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo cloning down textcat_goemotions...
+      - spacy project clone tutorials/textcat_goemotions
+      - echo Downloading spacy project assets...
+      - cd textcat_goemotions
+      - spacy project assets
+      - cd ..
+      - echo Model training assets setup, moving to train and build phase...
+  build:
+    commands:
+      - echo Training the spaCy project...
+      - cd textcat_goemotions
+      - spacy project run all
+      - cd ..
+      - echo Training complete. Model is available at textcat_goemotions/training/cnn/model-best
+      - echo Building the Docker image...
+      - docker build -t $SERVICE_NAME-image .
+      - echo Running smoke test on the container...
+      - docker run -d -p 8080:80 --name $SERVICE_NAME-container $SERVICE_NAME-image
+      - sleep 5  # Wait for the container to start
+      - |
+        python -c "
+        import requests
+        try:
+            response = requests.post('http://localhost:80/predict', json={'text': 'this is some text'})
+            assert response.status_code == 200, 'Smoke test failed!'
+            print('Smoke test passed:', response.json())
+        except Exception as e:
+            print('Smoke test failed:', str(e))
+            exit(1)
+        "
+      - docker stop $SERVICE_NAME-container
+      - docker rm $SERVICE_NAME-container
+  post_build:
+    commands:
+      - echo Tagging the Docker image...
+      - docker tag $ECR_REPO:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME
+      - echo Pushing Docker image to ECR...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME
+      - echo Preparing task definition...
+      - sed -e "s|<ECR_REPO>|$ECR_REPO|g" \
+            -e "s|<SERVICE_NAME>|$SERVICE_NAME|g" \
+            -e "s|<AWS_REGION>|$AWS_REGION|g" \
+            -e "s|<AWS_ACCOUNT_ID>|$AWS_ACCOUNT_ID|g" \
+            task_definition_template.json > task_definition.json
+      - echo Registering task definition...
+      - aws ecs register-task-definition --cli-input-json file://task_definition.json
+      - echo Checking if ECS service exists...
+      - |
+        SERVICE_EXISTS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME --query 'services[0].status' --output text)
+        if [ "$SERVICE_EXISTS" == "ACTIVE" ]; then
+            echo "Service exists. Updating the service..."
+            aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+        else
+            echo "Service does not yet exist. Creating ECS service..."
+            aws ecs create-service \
+              --cluster $CLUSTER_NAME \
+              --service-name $SERVICE_NAME \
+              --task-definition $SERVICE_NAME \
+              --desired-count 1 \
+              --launch-type FARGATE \
+              --network-configuration "awsvpcConfiguration={subnets=[subnet-061a6219b4c4f846a,subnet-0e4dcb4f98967aaec],securityGroups=[sg-09e220f656a51ebb9],assignPublicIp=ENABLED}" \
+              --load-balancers "targetGroupArn=arn:aws:elasticloadbalancing:us-east-2:982081073440:targetgroup/mlops-workshop-tg/d31b14cf11a57b49,containerName=$ECR_REPO:latest,containerPort=80}"
+        fi
+artifacts:
+  files:
+    - textcat_goemotions/training/cnn/model-best/**  # Optional: Save the trained model as an artifact

@@ -130,11 +130,15 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.*venv*
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Spacy projects
+textcat_goemotions/
 
 # Spyder project settings
 .spyderproject
