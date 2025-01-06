@@ -30,7 +30,7 @@ phases:
       - echo Building the Docker image...
       - docker build -t $SERVICE_NAME-image .
       - echo Running smoke test on the container...
-      - docker run -d -p 8080:80 --name $SERVICE_NAME-container $SERVICE_NAME-image
+      - docker run -d -p 80:80 --name $SERVICE_NAME-container $SERVICE_NAME-image
       - sleep 5  # Wait for the container to start
       - |
         python -c "
@@ -48,9 +48,9 @@ phases:
   post_build:
     commands:
       - echo Tagging the Docker image...
-      - docker tag $ECR_REPO:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME
+      - docker tag $SERVICE_NAME-image:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME-image
       - echo Pushing Docker image to ECR...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME-image
       - echo Preparing task definition...
       - sed -e "s|<ECR_REPO>|$ECR_REPO|g" \
             -e "s|<SERVICE_NAME>|$SERVICE_NAME|g" \
