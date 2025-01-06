@@ -35,8 +35,10 @@ phases:
       - echo Building the Docker image...
       - docker build -t $SERVICE_NAME-image .
       - echo Running smoke test on the container...
-      - docker run -d --rm -p 8080:80 --name $SERVICE_NAME-container $SERVICE_NAME-image &
-      - sleep 5  # Wait for the container to start
+      - docker run -d -p 8080:8080 --name $SERVICE_NAME-container $SERVICE_NAME-image
+      - sleep 15  # Wait for the container to start
+      - docker ps
+      - docker logs $SERVICE_NAME-container
       - |
         python -c "
         import requests
@@ -48,7 +50,10 @@ phases:
             print('Smoke test failed:', str(e))
             exit(1)
         "
+      - docker ps
+      - docker logs $SERVICE_NAME-container
       - docker stop $SERVICE_NAME-container
+      - docker rm -f $SERVICE_NAME-container
   post_build:
     commands:
       - echo Tagging the Docker image...
