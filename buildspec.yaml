@@ -1,9 +1,5 @@
 version: 0.2
 
-env:
-  variables:
-    $(cat vars-dev.txt)  # Load environment variables from a file
-
 phases:
   install:
     runtime-versions:
@@ -13,6 +9,8 @@ phases:
       - pip install --no-cache-dir -r requirements.txt
   pre_build:
     commands:
+      - echo Loading environemt variables...
+      - source vars-dev.txt
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - echo cloning down textcat_goemotions...
