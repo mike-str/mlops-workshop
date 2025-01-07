@@ -12,7 +12,7 @@ COPY textcat_goemotions/ ./textcat_goemotions/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose FastAPI port
-EXPOSE 8080
+EXPOSE 80
 
 # Command to run the FastAPI app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
