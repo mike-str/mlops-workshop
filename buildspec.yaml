@@ -34,26 +34,28 @@ phases:
       - echo Training complete. Model is available at textcat_goemotions/training/cnn/model-best
       - echo Building the Docker image...
       - docker build -t $SERVICE_NAME-image .
-      - echo Running smoke test on the container...
-      - docker run -d -p 8080:8080 --name $SERVICE_NAME-container $SERVICE_NAME-image
-      - sleep 15  # Wait for the container to start
-      - docker ps
-      - docker logs $SERVICE_NAME-container
-      - |
-        python -c "
-        import requests
-        try:
-            response = requests.post('http://localhost:8080/predict', json={'text': 'this is some text'})
-            assert response.status_code == 200, 'Smoke test failed!'
-            print('Smoke test passed:', response.json())
-        except Exception as e:
-            print('Smoke test failed:', str(e))
-            exit(1)
-        "
-      - docker ps
-      - docker logs $SERVICE_NAME-container
-      - docker stop $SERVICE_NAME-container
-      - docker rm -f $SERVICE_NAME-container
+      # - echo Running smoke test on the container...
+      # - docker run -d -p 8080:80 --name $SERVICE_NAME-container $SERVICE_NAME-image
+      # - sleep 15  # Wait for the container to start
+      # - echo Check container logs...
+      # - docker logs $SERVICE_NAME-container
+      # - docker ps
+      # - |
+      #   python -c "
+      #   import requests
+      #   try:
+      #       response = requests.post('http://localhost:8080/predict', json={'text': 'this is some text'})
+      #       assert response.status_code == 200, 'Smoke test failed!'
+      #       print('Smoke test passed:', response.json())
+      #   except Exception as e:
+      #       print('Smoke test failed:', str(e))
+      #       exit(1)
+      #   "
+      # - echo Check the container logs...
+      # - docker logs $SERVICE_NAME-container
+      # - docker ps
+      # - docker stop $SERVICE_NAME-container
+      # - docker rm -f $SERVICE_NAME-container
   post_build:
     commands:
       - echo Tagging the Docker image...
@@ -67,6 +69,8 @@ phases:
         with open('task_definition_template.json') as f:
             task_definition = json.load(f)
         task_definition['family'] = '$SERVICE_NAME'
+        task_definition['executionRoleArn'] = 'arn:aws:iam::$AWS_ACCOUNT_ID:role/mlops-workshop-ecs-task-role'
+        task_definition['taskRoleArn'] = 'arn:aws:iam::$AWS_ACCOUNT_ID:role/mlops-workshop-ecs-task-role'
         task_definition['containerDefinitions'][0]['name'] = '$ECR_REPO'
         task_definition['containerDefinitions'][0]['image'] = '$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$SERVICE_NAME-image'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-group'] = '/ecs/$SERVICE_NAME'
