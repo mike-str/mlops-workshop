@@ -92,7 +92,7 @@ phases:
             echo "Service does not yet exist. Creating ECS service..."
             echo "Setting up ALB routing for $SERVICE_NAME..."
             export ALB_ARN=$(aws elbv2 describe-load-balancers --names mlops-workshop-alb --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-            export TG_ARN=$(aws elbv2 create-target-group --name mlops-workshop-$SERVICE_NAME-tg --protocol HTTP --port 8080 --vpc-id $VPC_ID --target-type ip --query 'TargetGroups[0].TargetGroupArn' --output text)
+            export TG_ARN=$(aws elbv2 create-target-group --name $SERVICE_NAME-tg --protocol HTTP --port 8080 --vpc-id $VPC_ID --target-type ip --query 'TargetGroups[0].TargetGroupArn' --output text)
             echo "Adding routing rule for /$SERVICE_NAME..."
             export LISTENER_ARN=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query 'Listeners[0].ListenerArn' --output text)
             aws elbv2 create-rule --listener-arn $LISTENER_ARN --conditions '[{"Field":"path-pattern","Values":["/'"$SERVICE_NAME"'"]}]' --priority $PRIORITY --actions '[{"Type":"forward","TargetGroupArn":"'"$TG_ARN"'"}]'
