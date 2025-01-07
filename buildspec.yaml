@@ -104,7 +104,7 @@ phases:
               --desired-count 1 \
               --launch-type FARGATE \
               --network-configuration "awsvpcConfiguration={subnets=[subnet-061a6219b4c4f846a,subnet-0e4dcb4f98967aaec],securityGroups=[sg-09e220f656a51ebb9],assignPublicIp=ENABLED}" \
-              --load-balancers "targetGroupArn=$TG_ARN,containerName=$ECR_REPO:$SERVICE_NAME-image,containerPort=8080"
+              --load-balancers "targetGroupArn=$TG_ARN,containerName=$ECR_REPO,containerPort=8080"
         fi
 artifacts:
   files:
