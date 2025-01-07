@@ -3,3 +3,4 @@ CLUSTER_NAME=mlops-workshop-cluster
 AWS_REGION=us-east-2
 AWS_ACCOUNT_ID=982081073440
 ECR_REPO=mlops-workshop-dev
+PRIORITY=1
