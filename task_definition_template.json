@@ -9,7 +9,7 @@
     "containerDefinitions": [
       {
         "name": "<SERVICE_NAME>",
-        "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPO>:<SERVICE_NAME>",
+        "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPO>:<SERVICE_NAME>-image",
         "essential": true,
         "portMappings": [
           {
