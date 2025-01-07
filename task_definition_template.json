@@ -1,6 +1,8 @@
 {
     "family": "<SERVICE_NAME>",
     "networkMode": "awsvpc",
+    "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
+    "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
     "requiresCompatibilities": ["FARGATE"],
     "cpu": "256",
     "memory": "512",
