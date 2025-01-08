@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import spacy
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 # Load the trained spaCy model
 MODEL_PATH = "textcat_goemotions/training/cnn/model-best"  # Path to your trained model
@@ -18,3 +20,7 @@ class InputText(BaseModel):
 async def predict(input: InputText):
     doc = nlp(input.text)
     return {"text": input.text, "labels": doc.cats}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}

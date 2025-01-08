@@ -9,7 +9,7 @@
     "containerDefinitions": [
       {
         "name": "<SERVICE_NAME>",
-        "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPO>:<SERVICE_NAME>-image",
+        "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<SERVICE_NAME>:latest",
         "essential": true,
         "portMappings": [
           {
@@ -17,6 +17,16 @@
             "protocol": "tcp"
           }
         ],
+        "healthCheck": {
+          "command": [
+            "CMD-SHELL",
+            "curl -f http://localhost:80/health || exit 1"
+          ],
+          "interval": 30,
+          "timeout": 5,
+          "retries": 3,
+          "startPeriod": 60
+        },
         "logConfiguration": {
           "logDriver": "awslogs",
           "options": {
