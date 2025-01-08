@@ -11,6 +11,11 @@ COPY textcat_goemotions/ ./textcat_goemotions/
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Environment variables
+# Pass SERVICE_NAME as a build argument and set it as an environment variable
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
+
 # Expose FastAPI port
 EXPOSE 80
 

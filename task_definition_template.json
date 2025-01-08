@@ -4,8 +4,8 @@
     "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
     "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
     "requiresCompatibilities": ["FARGATE"],
-    "cpu": "256",
-    "memory": "512",
+    "cpu": "512",
+    "memory": "1024",
     "containerDefinitions": [
       {
         "name": "<SERVICE_NAME>",
@@ -20,7 +20,7 @@
         "healthCheck": {
           "command": [
             "CMD-SHELL",
-            "curl -f http://localhost:80/health || exit 1"
+            "curl -f http://localhost:80/<SERVICE_NAME>/health || exit 1"
           ],
           "interval": 30,
           "timeout": 5,

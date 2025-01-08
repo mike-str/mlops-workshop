@@ -35,7 +35,7 @@ phases:
       - cd ..
       - echo Training complete. Model is available at textcat_goemotions/training/cnn/model-best
       - echo Building the Docker image...
-      - docker build -t $SERVICE_NAME .
+      - docker build --build-arg SERVICE_NAME=$SERVICE_NAME -t $SERVICE_NAME .
       # - echo Running smoke test on the container...
       # - docker run -d -p 80:80 --name $SERVICE_NAME-container $SERVICE_NAME-image
       # - sleep 15  # Wait for the container to start
@@ -84,6 +84,7 @@ phases:
         task_definition['taskRoleArn'] = 'arn:aws:iam::$AWS_ACCOUNT_ID:role/mlops-workshop-ecs-task-role'
         task_definition['containerDefinitions'][0]['name'] = '$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['image'] = '$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest'
+        task_definition['containerDefinitions'][0]['healthCheck']['command'][1] = 'curl -f http://localhost:80/$SERVICE_NAME/health || exit 1'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-group'] = '/ecs/$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-region'] = '$AWS_REGION'
         with open('task_definition.json', 'w') as f:
