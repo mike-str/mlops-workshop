@@ -17,6 +17,12 @@
             "protocol": "tcp"
           }
         ],
+        "environment": [
+          {
+            "name": "SERVICE_NAME",
+            "value": "<SERVICE_NAME>"
+          }
+        ],
         "healthCheck": {
           "command": [
             "CMD-SHELL",

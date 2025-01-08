@@ -84,6 +84,7 @@ phases:
         task_definition['taskRoleArn'] = 'arn:aws:iam::$AWS_ACCOUNT_ID:role/mlops-workshop-ecs-task-role'
         task_definition['containerDefinitions'][0]['name'] = '$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['image'] = '$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest'
+        task_definition['containerDefinitions'][0]['environment'] = [{'name': 'SERVICE_NAME', 'value': '$SERVICE_NAME'}]
         task_definition['containerDefinitions'][0]['healthCheck']['command'][1] = 'curl -f http://localhost:80/$SERVICE_NAME/health || exit 1'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-group'] = '/ecs/$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-region'] = '$AWS_REGION'
