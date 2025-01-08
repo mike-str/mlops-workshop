@@ -85,7 +85,7 @@ phases:
         task_definition['containerDefinitions'][0]['name'] = '$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['image'] = '$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest'
         task_definition['containerDefinitions'][0]['environment'] = [{'name': 'SERVICE_NAME', 'value': '$SERVICE_NAME'}]
-        task_definition['containerDefinitions'][0]['healthCheck']['command'][1] = 'curl -f http://localhost:80/$SERVICE_NAME/health || exit 1'
+        task_definition['containerDefinitions'][0]['healthCheck']['command'][1] = 'curl -f http://localhost/$SERVICE_NAME/health || exit 1'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-group'] = '/ecs/$SERVICE_NAME'
         task_definition['containerDefinitions'][0]['logConfiguration']['options']['awslogs-region'] = '$AWS_REGION'
         with open('task_definition.json', 'w') as f:
@@ -112,7 +112,7 @@ phases:
             echo "Service does not yet exist. Creating ECS service..."
             echo "Setting up ALB routing for $SERVICE_NAME..."
             export ALB_ARN=$(aws elbv2 describe-load-balancers --names mlops-workshop-alb --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-            export TG_ARN=$(aws elbv2 create-target-group --name $SERVICE_NAME-tg --protocol HTTP --port 80 --vpc-id $VPC_ID --target-type ip --query 'TargetGroups[0].TargetGroupArn' --output text)
+            export TG_ARN=$(aws elbv2 create-target-group --name $SERVICE_NAME-tg --protocol HTTP --port 80 --vpc-id $VPC_ID --target-type ip --health-check-path "/${SERVICE_NAME}/health" --query 'TargetGroups[0].TargetGroupArn' --output text)
             echo "Adding routing rule for /$SERVICE_NAME..."
             export LISTENER_ARN=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query 'Listeners[0].ListenerArn' --output text)
             aws elbv2 create-rule --listener-arn $LISTENER_ARN --conditions '[{"Field":"path-pattern","Values":["/'"$SERVICE_NAME"'/*"]}]' --priority $PRIORITY --actions '[{"Type":"forward","TargetGroupArn":"'"$TG_ARN"'"}]'

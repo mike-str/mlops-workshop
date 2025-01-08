@@ -1,12 +1,12 @@
 FROM python:3.12-slim
 
 # Set up working directory
-WORKDIR /code
+WORKDIR /app
 
 # Copy files
-COPY requirements.txt .
-COPY app/ ./app/
-COPY textcat_goemotions/ ./textcat_goemotions/
+COPY requirements.txt /app/requirements.txt
+COPY app /app/app
+COPY textcat_goemotions /app/textcat_goemotions/
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
