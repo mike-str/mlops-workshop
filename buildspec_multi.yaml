@@ -1,0 +1,69 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo Setting up environments for services...
+      - for service in $(ls services); do
+          echo Setting up environment for $service;
+          cd services/$service;
+          echo Creating virtual environment for $service;
+          python -m venv .$service_venv;
+          source .$service_venv/bin/activate;
+          echo Installing dependencies for $service;
+          pip install --no-cache-dir -r requirements.txt;
+          source deactivate;
+          cd ../..;
+        done
+    pre_build:
+      commands:
+        - echo Preparing setup for services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Loading environment variables for $service;
+            export $(cat vars-dev.txt | xargs);
+            echo Service is $SERVICE_NAME;
+            echo Account is $AWS_ACCOUNT_ID;
+            echo Region is $AWS_REGION;
+            echo ECR repo is $SERVICE_NAME;
+            echo Cluster is $CLUSTER_NAME;
+            echo Logging in to Amazon ECR for $service;
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com;
+            echo Running artifact setup for $service;
+            bash setup.sh;
+            source deactivate;
+            cd ../..;
+            echo Artifacts prepared for $service;
+          done
+        - Artifacts prepared for all services, moving to build phase...
+    build:
+      commands:
+        - echo Training and building services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Building artifacts for $service;
+            bash build.sh;
+            source deactivate;
+            cd ../..;
+            echo Building the Docker image for $service;
+            docker build --build-arg SERVICE_NAME=$env-$service -t $env-$service .;
+          done
+        - echo All services built successfully. Moving to deploy phase...
+    post_build:
+      commands:
+        - echo Deploying services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Deploying $service to ECR;
+            docker tag $env-$service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$env-$service:latest;
+            docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$env-$service:latest;
+            echo Deployed $service to ECR;
+            source deactivate;
+            cd ../..;
+          done
+        - echo All services deployed successfully. Moving to cleanup phase...
