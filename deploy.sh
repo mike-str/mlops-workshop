@@ -84,3 +84,6 @@ source build.sh
 #         --network-configuration "awsvpcConfiguration={subnets=[subnet-061a6219b4c4f846a,subnet-0e4dcb4f98967aaec],securityGroups=[sg-09e220f656a51ebb9],assignPublicIp=ENABLED}" \
 #         --load-balancers "targetGroupArn=$TG_ARN,containerName=$SERVICE_NAME,containerPort=80"
 # fi
+
+# save python dependencies
+pip freeze > requirements-updated.txt
