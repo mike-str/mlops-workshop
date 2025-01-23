@@ -1,0 +1,425 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for CodeBuild service role with custom policies
+
+Parameters:
+  uid:
+    Type: String
+    Description: The AWS username to parameterize resource access restrictions
+
+Resources:
+  # CodeBuild Service Role
+  CodeBuildServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties: 
+      RoleName: !Sub '${uid}-codebuild-service-role'
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - codebuild.amazonaws.com
+            Action: 
+              - 'sts:AssumeRole'
+
+  CodeBuildPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-codebuild-base-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Action:
+              - 'codebuild:CreateReportGroup'
+              - 'codebuild:CreateReport'
+              - 'codebuild:UpdateReport'
+              - 'codebuild:BatchPutTestCases'
+              - 'codebuild:BatchPutCodeCoverages'
+            Resource:
+              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${uid}-codebuild-project-*'
+              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${uid}-codebuild-project:*'
+          - Effect: Allow
+            Action: 
+              - 'codebuild:StartBuild'
+              - 'codebuild:BatchGetBuilds'
+            Resource: 
+              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${uid}-codebuild-project'
+
+  S3Policy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-s3-codebuild-policy'
+      Roles:
+        - !Ref CodeBuildServiceRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:GetObjectVersion'
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketLocation'
+            Resource: 
+              - !Sub 'arn:aws:s3:::codepipeline-${AWS::Region}-*'
+
+  LogsPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-logs-codebuild-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Action: 
+              - 'logs:GetLogEvents'
+              - 'logs:FilterLogEvents'
+              - 'logs:GetLogGroupFields'
+              - 'logs:GetQueryResults'
+              - 'logs:StartQuery'
+              - 'logs:StopQuery'
+            Resource: '*'
+          - Effect: Allow
+            Action: 
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: 
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${uid}-codebuild-project'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${uid}-codebuild-project:*'
+
+  ECRPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-ecr-codebuild-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:CreateServiceLinkedRole'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'iam:AWSServiceName': 'replication.ecr.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - cloudtrail:LookupEvents
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - ecr:BatchCheckLayerAvailability
+              - ecr:BatchGetImage
+              - ecr:DescribeImageReplicationStatus
+              - ecr:DescribeImages
+              - ecr:DescribePullThroughCacheRules
+              - ecr:DescribeRepositories
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+              - ecr:GetLifecyclePolicy
+              - ecr:GetLifecyclePolicyPreview
+              - ecr:GetRegistryPolicy
+              - ecr:GetRegistryScanningConfiguration
+              - ecr:GetRepositoryPolicy
+              - ecr:ListImages
+              - ecr:ListTagsForResource
+              - ecr:StartImageScan
+              - ecr:StartLifecyclePolicyPreview
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - ecr:BatchDeleteImage
+              - ecr:CompleteLayerUpload
+              - ecr:CreateRepository
+              - ecr:DeleteLifecyclePolicy
+              - ecr:DeleteRepository
+              - ecr:DeleteRepositoryPolicy
+              - ecr:InitiateLayerUpload
+              - ecr:PutImage
+              - ecr:PutImageScanningConfiguration
+              - ecr:PutImageTagMutability
+              - ecr:PutLifecyclePolicy
+              - ecr:PutRegistryPolicy
+              - ecr:PutRegistryScanningConfiguration
+              - ecr:PutReplicationConfiguration
+              - ecr:SetRepositoryPolicy
+              - ecr:TagResource
+              - ecr:UntagResource
+              - ecr:UploadLayerPart
+            Resource: !Sub 'arn:aws:ecr:*:*:repository/${uid}-*'
+
+  ECSPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-ecs-codebuild-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecs:ListClusters
+              - ecs:ListServices
+              - ecs:DescribeServices
+              - ecs:ListTaskDefinitions
+              - ecs:DescribeTaskDefinition
+              - ecs:ListTasks
+              - ecs:DescribeTasks
+              - ecs:ListContainerInstances
+              - ecs:DescribeContainerInstances
+              - ecs:DescribeClusters
+              - ecs:DescribeContainerInstances
+              - ecs:DescribeTaskSets
+              - ecs:DescribeCapacityProviders
+              - ecs:ListAttributes
+              - ecs:ListTagsForResource
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - ecs:RegisterTaskDefinition
+              - ecs:DeregisterTaskDefinition
+              - ecs:CreateService
+              - ecs:UpdateService
+              - ecs:RunTask
+              - ecs:StartTask
+              - ecs:StopTask
+              - ecs:UpdateTaskSet
+              - ecs:TagResource
+              - ecs:UntagResource
+            Resource: 
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/mlops-workshop-cluster'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${uid}-*'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${uid}-*'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task/${uid}-*'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:container-instance/${uid}-*'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-set/${uid}-*'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource: '*'
+            Condition:
+              StringLike:
+                iam:PassedToService:
+                  - 'ecs-tasks.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - 'arn:aws:iam::*:role/ecsInfrastructureRole'
+            Condition:
+              StringEquals:
+                iam:PassedToService:
+                  - 'ecs.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - 'arn:aws:iam::*:role/ecsInstanceRole*'
+            Condition:
+              StringLike:
+                iam:PassedToService:
+                  - 'ec2.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - 'arn:aws:iam::*:role/ecsAutoscaleRole*'
+            Condition:
+              StringLike:
+                iam:PassedToService:
+                  - 'application-autoscaling.amazonaws.com'
+          - Effect: Allow
+            Action: iam:CreateServiceLinkedRole
+            Resource: '*'
+            Condition:
+              StringLike:
+                iam:AWSServiceName:
+                  - ecs.amazonaws.com
+                  - autoscaling.amazonaws.com
+                  - ecs.application-autoscaling.amazonaws.com
+            
+  ELBPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-elb-codebuild-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - elasticloadbalancing:DescribeAccountLimits
+              - elasticloadbalancing:DescribeInstanceHealth
+              - elasticloadbalancing:DescribeListenerCertificates
+              - elasticloadbalancing:DescribeListeners
+              - elasticloadbalancing:DescribeLoadBalancerAttributes
+              - elasticloadbalancing:DescribeLoadBalancerPolicies
+              - elasticloadbalancing:DescribeLoadBalancerPolicyTypes
+              - elasticloadbalancing:DescribeLoadBalancers
+              - elasticloadbalancing:DescribeRules
+              - elasticloadbalancing:DescribeSSLPolicies
+              - elasticloadbalancing:DescribeTags
+              - elasticloadbalancing:DescribeTargetGroupAttributes
+              - elasticloadbalancing:DescribeTargetGroups
+              - elasticloadbalancing:DescribeTargetHealth
+              - elasticloadbalancing:ListTagsForResource
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - elasticloadbalancing:CreateTargetGroup
+              - elasticloadbalancing:CreateRule
+            Resource:
+              - !Sub 'arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/mlops-workshop-alb/*'
+              - !Sub 'arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/app/mlops-workshop-alb/*'
+              - !Sub 'arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${uid}-*-tg/*'
+              - !Sub 'arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/mlops-workshop-alb/*'
+          - Effect: Allow
+            Action:
+              - elasticloadbalancing:AddTags
+            Resource: '*'
+            Condition:
+              StringEquals:
+                elasticloadbalancing:CreateAction:
+                  - 'CreateTargetGroup'
+                  - 'CreateRule'
+
+  SSMPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-ssm-codebuild-policy'
+      Roles: 
+        - !Ref CodeBuildServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - ssm:GetParameters
+              - ssm:GetParameter
+              - ssm:GetParametersByPath
+            Resource: 'arn:aws:ssm:*:*:parameter/aws/service/ecs*'
+
+  # CodePipeline Service Role
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties: 
+      RoleName: !Sub '${uid}-codepipeline-service-role'
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - codepipeline.amazonaws.com
+            Action: 
+              - 'sts:AssumeRole'
+  
+  CodePipelinePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-codepipeline-base-policy'
+      Roles: 
+        - !Ref CodePipelineServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource: '*'
+            Condition:
+              StringEqualsIfExists:
+                iam:PassedToService:
+                  - 'cloudformation.amazonaws.com'
+                  - 'elasticbeanstalk.amazonaws.com'
+                  - 'ec2.amazonaws.com'
+                  - 'ecs-tasks.amazonaws.com'
+          - Effect: Allow
+            Action:
+              - 'codebuild:BatchGetBuilds'
+              - 'codebuild:BatchGetBuildBatches'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'codebuild:StartBuild'
+              - 'codebuild:StartBuildBatch'
+            Resource: 
+              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${uid}-codebuild-project'
+          - Effect: Allow
+            Action:
+              - 'codecommit:CancelUploadArchive'
+              - 'codecommit:GetBranch'
+              - 'codecommit:GetCommit'
+              - 'codecommit:GetRepository'
+              - 'codecommit:GetUploadArchiveStatus'
+              - 'codecommit:UploadArchive'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 's3:*'
+            Resource:
+              - !Sub 'arn:aws:s3:::codepipeline-${AWS::Region}*'
+              - !Sub 'arn:aws:s3:::codepipeline-${AWS::Region}*/*'
+
+  ConnectionsPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-connections-codepipeline-policy'
+      Roles: 
+        - !Ref CodePipelineServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'codestar-connections:UseConnection'
+            Resource: '*'
+
+  LogsCodePipelinePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${uid}-logs-codepipeline-policy'
+      Roles: 
+        - !Ref CodePipelineServiceRole
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:GetLogEvents'
+              - 'logs:FilterLogEvents'
+              - 'logs:GetLogGroupFields'
+              - 'logs:GetQueryResults'
+              - 'logs:StartQuery'
+              - 'logs:StopQuery'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: 
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codepipeline/${uid}-codepipeline'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codepipeline/${uid}-codepipeline:log-stream:*'
+
+Outputs:
+  CodebuildServiceRoleArn:
+    Description: The ARN of the CodeBuild service role
+    Value: !GetAtt CodeBuildServiceRole.Arn
+    Export:
+      Name: !Sub '${uid}-codebuild-service-role-arn'
+  CodepipelineServiceRoleArn:
+    Description: The ARN of the CodePipeline service role
+    Value: !GetAtt CodePipelineServiceRole.Arn
+    Export:
+      Name: !Sub '${uid}-codepipeline-service-role-arn'
