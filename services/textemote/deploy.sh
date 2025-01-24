@@ -2,6 +2,7 @@ AWS_ACCOUNT_ID=$1
 AWS_REGION=$2
 SERVICE_NAME=$3
 SERVICE_TYPE=$4
+PRIORITY=$5
 
 # create ecs task definition
 sed -e "s;#AWS_ACCOUNT_ID#;$AWS_ACCOUNT_ID;g" \
@@ -33,10 +34,6 @@ else
     export TG_ARN=$(aws elbv2 create-target-group --name $SERVICE_NAME-tg --protocol HTTP --port 80 --vpc-id $VPC_ID --target-type ip --health-check-path "/${SERVICE_NAME}/health" --query 'TargetGroups[0].TargetGroupArn' --output text)
     echo "Adding routing rule for /$SERVICE_NAME..."
     export LISTENER_ARN=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query 'Listeners[0].ListenerArn' --output text)
-    echo "Since service does not yet exist, we will set a priority level 10 higher than current max"
-    cd ../../
-    PRIORITY=$(./get_new_priority_level.sh)
-    cd services/$SERVICE_TYPE
     aws elbv2 create-rule --listener-arn $LISTENER_ARN --conditions '[{"Field":"path-pattern","Values":["/'"$SERVICE_NAME"'/*"]}]' --priority $PRIORITY --actions '[{"Type":"forward","TargetGroupArn":"'"$TG_ARN"'"}]'
     echo "Creating ECS service..."
     aws ecs create-service \
