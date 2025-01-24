@@ -76,7 +76,9 @@ phases:
           echo Deploying $SERVICE_NAME to ECS;
           docker tag $SERVICE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
-          ./deploy.sh $AWS_ACCOUNT_ID $AWS_REGION $SERVICE_NAME $SERVICE_TYPE;
+          cd ../../;
+          PRIORITY_IF_NEW=$(bash get_new_priority_level.sh);
+          bash deploy.sh $AWS_ACCOUNT_ID $AWS_REGION $SERVICE_NAME $SERVICE_TYPE $PRIORITY_IF_NEW;
           echo Deployed $SERVICE_NAME to ECS;
           deactivate;
           cd ../..;
