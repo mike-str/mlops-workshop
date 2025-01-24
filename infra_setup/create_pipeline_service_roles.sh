@@ -13,10 +13,10 @@ USERNAMES=("prod")
 # Iterate through each username and create a CloudFormation stack
 for USERNAME in $USERNAMES; do
   echo "Creating stack for user: $USERNAME"
-  aws cloudformation create-stack \
+  aws cloudformation deploy \
     --stack-name "codebuild-codepipeline-service-roles-$USERNAME" \
-    --template-body file://codebuild-service-role.yaml \
-    --parameters ParameterKey=uid,ParameterValue=$USERNAME \
+    --template-file codebuild-service-role.yaml \
+    --parameter-overrides uid=$USERNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile mmur-admin
 done
