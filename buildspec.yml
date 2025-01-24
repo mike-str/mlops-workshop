@@ -61,9 +61,18 @@ phases:
   post_build:
     commands:
       - echo Deploying services...
-      - for service in $(ls services); do
+      - |
+        for service in $(ls services); do
           cd services/$service;
           . .$service_venv/bin/activate;
+          echo Checking if $SERVICE_NAME exists in ECR...;
+          REPO_EXISTS=$(aws ecr describe-repositories --repository-names $SERVICE_NAME --query 'repositories[0].repositoryName' --output text);
+          if [ "$REPO_EXISTS" == "$SERVICE_NAME" ]; then
+              echo "ECR repo exists.";
+          else
+              echo "ECR repo does not yet exist. Creating ECR repo...";
+              aws ecr create-repository --repository-name $SERVICE_NAME;
+          fi;
           echo Deploying $SERVICE_NAME to ECS;
           docker tag $SERVICE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
@@ -71,5 +80,5 @@ phases:
           echo Deployed $SERVICE_NAME to ECS;
           deactivate;
           cd ../..;
-        done
+        done;
       - echo All services deployed successfully. Moving to cleanup phase...
