@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CloudFormation template to create a CodeBuild project, CodeStar connection, and CodePipeline for students."
+
+Parameters:
+  uid:
+    Type: String
+    Description: "The username of the student."
+  githubprofile:
+    Type: String
+    Description: "The GitHub profile of the student."
+
+Resources:
+  CodeStarConnection:
+    Type: "AWS::CodeStarConnections::Connection"
+    Properties:
+      ConnectionName: !Sub "${uid}-connection"
+      ProviderType: "GitHub"
+
+  CodeBuildProject:
+    Type: "AWS::CodeBuild::Project"
+    Properties:
+      Name: !Sub "${uid}-codebuild-project"
+      ServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/${uid}-codebuild-service-role"
+      Artifacts:
+        Type: "CODEPIPELINE"
+      Environment:
+        Type: "LINUX_CONTAINER"
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/standard:5.0"
+      Source:
+        Type: "CODEPIPELINE"
+        BuildSpec: "buildspec.yml"
+
+  CodePipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      Name: !Sub "${uid}-codepipeline"
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${uid}-codepipeline-service-role"
+      ArtifactStore:
+        Type: "S3"
+        Location: "codepipeline-us-east-2-222613562898"
+      Stages:
+        - Name: "Source"
+          Actions:
+            - Name: "SourceAction"
+              ActionTypeId:
+                Category: "Source"
+                Owner: "AWS"
+                Provider: "CodeStarSourceConnection"
+                Version: "1"
+              OutputArtifacts:
+                - Name: !Sub "${uid}SourceArtifact"
+              Configuration:
+                ConnectionArn: !GetAtt CodeStarConnection.ConnectionArn
+                FullRepositoryId: !Sub "${githubprofile}/mlops-workshop"
+                BranchName: "main"
+                OutputArtifactFormat: "CODEPIPELINE_BUCKET_PATH_FORMAT"
+              RunOrder: 1
+        - Name: "Build"
+          Actions:
+            - Name: "BuildAction"
+              ActionTypeId:
+                Category: "Build"
+                Owner: "AWS"
+                Provider: "CodeBuild"
+                Version: "1"
+              InputArtifacts:
+                - Name: !Sub "${uid}SourceArtifact"
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1

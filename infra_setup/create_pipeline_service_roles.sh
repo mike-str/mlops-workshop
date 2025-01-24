@@ -8,7 +8,7 @@
 # # Read the usernames from the JSON file
 # USERNAMES=$(jq -r 'keys[]' $USERS_FILE)
 
-USERNAMES=("mmur")
+USERNAMES=("prod")
 
 # Iterate through each username and create a CloudFormation stack
 for USERNAME in $USERNAMES; do
