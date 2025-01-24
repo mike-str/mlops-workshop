@@ -2,8 +2,6 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      python: 3.10
     commands:
       - echo Setting up environments for services...
       - export USERNAME=$(echo $CODEBUILD_BUILD_ID | cut -d':' -f1 | sed 's/-codebuild-project//');
