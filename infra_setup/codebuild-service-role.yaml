@@ -79,6 +79,7 @@ Resources:
           - Effect: Allow
             Action: 
               - 'logs:GetLogEvents'
+              - 'logs:DescribeLogGroups'
               - 'logs:FilterLogEvents'
               - 'logs:GetLogGroupFields'
               - 'logs:GetQueryResults'
@@ -93,6 +94,8 @@ Resources:
             Resource: 
               - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${uid}-codebuild-project'
               - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${uid}-codebuild-project:*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/ecs/${uid}-*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/ecs/${uid}-*:*'
 
   ECRPolicy:
     Type: 'AWS::IAM::Policy'
@@ -197,7 +200,7 @@ Resources:
               - ecs:UntagResource
             Resource: 
               - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/mlops-workshop-cluster'
-              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${uid}-*'
+              - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/mlops-workshop-cluster/${uid}-*'
               - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${uid}-*'
               - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task/${uid}-*'
               - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:container-instance/${uid}-*'

@@ -17,11 +17,10 @@ for USER in "${USERS[@]}"; do
   # Split the USER variable into uid and githubprofile
   IFS=' ' read -r uid githubprofile <<< "$USER"
   echo "Creating stack for user: $uid with githubprofile: $githubprofile"
-  aws cloudformation create-stack \
+  aws cloudformation deploy \
     --stack-name "codebuild-codepipeline-connection-$uid" \
-    --template-body file://user-pipelines.yaml \
-    --parameters ParameterKey=uid,ParameterValue=$uid \
-                 ParameterKey=githubprofile,ParameterValue=$githubprofile \
+    --template-file user-pipelines.yaml \
+    --parameter-overrides uid=$uid githubprofile=$githubprofile \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile mmur-admin
 done
