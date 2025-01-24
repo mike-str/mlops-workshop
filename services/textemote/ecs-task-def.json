@@ -1,15 +1,15 @@
 {
-    "family": "<SERVICE_NAME>",
+    "family": "#SERVICE_NAME#",
     "networkMode": "awsvpc",
-    "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
-    "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/mlops-workshop-ecs-task-role",
+    "executionRoleArn": "arn:aws:iam::#AWS_ACCOUNT_ID#:role/mlops-workshop-ecs-task-role",
+    "taskRoleArn": "arn:aws:iam::#AWS_ACCOUNT_ID#:role/mlops-workshop-ecs-task-role",
     "requiresCompatibilities": ["FARGATE"],
     "cpu": "512",
     "memory": "1024",
     "containerDefinitions": [
       {
-        "name": "<SERVICE_NAME>",
-        "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<SERVICE_NAME>:latest",
+        "name": "#SERVICE_NAME#",
+        "image": "#AWS_ACCOUNT_ID#.dkr.ecr.#AWS_REGION#.amazonaws.com/#SERVICE_NAME#:latest",
         "essential": true,
         "portMappings": [
           {
@@ -20,13 +20,13 @@
         "environment": [
           {
             "name": "SERVICE_NAME",
-            "value": "<SERVICE_NAME>"
+            "value": "#SERVICE_NAME#"
           }
         ],
         "healthCheck": {
           "command": [
             "CMD-SHELL",
-            "curl -f http://localhost/<SERVICE_NAME>/health || exit 1"
+            "curl -f http://localhost/#SERVICE_NAME#/health || exit 1"
           ],
           "interval": 30,
           "timeout": 5,
@@ -36,8 +36,8 @@
         "logConfiguration": {
           "logDriver": "awslogs",
           "options": {
-            "awslogs-group": "/ecs/<SERVICE_NAME>",
-            "awslogs-region": "<AWS_REGION>",
+            "awslogs-group": "/ecs/#SERVICE_NAME#",
+            "awslogs-region": "#AWS_REGION#",
             "awslogs-stream-prefix": "ecs"
           }
         }

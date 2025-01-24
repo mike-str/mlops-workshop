@@ -1,0 +1,75 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo Setting up environments for services...
+      - export USERNAME=$(echo $CODEBUILD_BUILD_ID | cut -d':' -f1 | sed 's/-codebuild-project//');
+      - echo Username is $USERNAME;
+      - export $(cat deploy-vars.txt | xargs);
+      - for service in $(ls services); do
+          echo Setting up environment for $service;
+          cd services/$service;
+          echo Creating virtual environment for $service;
+          python -m venv .$service_venv;
+          echo "export SERVICE_NAME=$USERNAME-$service" >> .$service_venv/bin/activate;
+          echo "export SERVICE_TYPE=$service" >> .$service_venv/bin/activate;
+          source .$service_venv/bin/activate;
+          echo Installing dependencies for $service;
+          pip install --no-cache-dir -r requirements.txt;
+          source deactivate;
+          cd ../..;
+        done
+    pre_build:
+      commands:
+        - echo Preparing setup for services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Service type is $SERVICE_TYPE;
+            echo Service is $SERVICE_NAME;
+            echo Account is $AWS_ACCOUNT_ID;
+            echo Region is $AWS_REGION;
+            echo ECR repo is $SERVICE_NAME;
+            echo Cluster is $CLUSTER_NAME;
+            echo VPC Id is $VPC_ID;
+            echo Logging in to Amazon ECR for $service;
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com;
+            echo Running artifact setup for $service;
+            bash setup.sh;
+            source deactivate;
+            cd ../..;
+            echo Artifacts prepared for $service;
+          done
+        - Artifacts prepared for all services, moving to build phase...
+    build:
+      commands:
+        - echo Training and building services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Building artifacts for $service;
+            bash build.sh;
+            echo Building the Docker image for $service;
+            docker build --build-arg SERVICE_NAME=$SERVICE_NAME -t $SERVICE_NAME .;
+            deactivate;
+            cd ../..;
+          done
+        - echo All services built successfully. Moving to deploy phase...
+    post_build:
+      commands:
+        - echo Deploying services...
+        - for service in $(ls services); do
+            cd services/$service;
+            source .$service_venv/bin/activate;
+            echo Deploying $SERVICE_NAME to ECS;
+            docker tag $SERVICE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
+            docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME:latest;
+            ./deploy.sh $AWS_ACCOUNT_ID $AWS_REGION $SERVICE_NAME $SERVICE_TYPE;
+            echo Deployed $SERVICE_NAME to ECS;
+            source deactivate;
+            cd ../..;
+          done
+        - echo All services deployed successfully. Moving to cleanup phase...

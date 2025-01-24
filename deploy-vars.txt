@@ -1,7 +1,4 @@
-SERVICE_NAME=mlops-workshop-dev-service-10
 CLUSTER_NAME=mlops-workshop-cluster
 AWS_REGION=us-east-2
 AWS_ACCOUNT_ID=982081073440
-ECR_REPO=mlops-workshop-dev-service-10
-PRIORITY=10
 VPC_ID=vpc-0570c12e327d5c8e8
